@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const app = express();
@@ -39,6 +40,15 @@ async function run() {
 run().catch(console.dir);
 
 //api
+
+//jwt
+app.post("/authentication", (req, res) => {
+  const userEmail = req.body;
+  const token = jwt.sign(userEmail, process.env.ACCESS_KEY_TOKEN, {
+    expiresIn: "10d",
+  });
+  res.send({ token });
+});
 
 app.get("/", (req, res) => {
   res.send("vistamart is running");
