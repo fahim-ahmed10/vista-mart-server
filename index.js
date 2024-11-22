@@ -9,8 +9,6 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-//middleware
-
 //mongodb client
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kwc9pjc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -42,15 +40,77 @@ async function run() {
 }
 run().catch(console.dir);
 
+//middleware
+
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.send({ message: "No Token" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_KEY_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.send({ message: "Invalid Token" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
+//Verify Seller
+const verifySeller = async (req, res, next) => {
+  try {
+    // Check if req.decoded exists and contains an email
+    if (!req.decoded || !req.decoded.email) {
+      return res.status(401).send({ message: "Unauthorized access" });
+    }
+
+    const email = req.decoded.email;
+
+    // Query the user collection
+    const query = { email: email };
+    const user = await userCollection.findOne(query);
+
+    // Check if the user's role is 'seller'
+    if (!user || user.role !== "seller") {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+
+    // Proceed to the next middleware or route handler
+    next();
+  } catch (error) {
+    console.error("Error in verifySeller middleware:", error);
+    res.status(500).send({ message: "Internal Server Error" });
+  }
+};
+
 //api
+
+//create user data
 app.post("/users", async (req, res) => {
   const user = req.body;
   const query = { email: user.email };
   const existingUser = await userCollection.findOne(query);
+
   if (existingUser) {
     return res.send({ message: "User already exists" });
   }
   const result = await userCollection.insertOne(user);
+  res.send(result);
+});
+
+//find user data
+app.get("/user/:email", async (req, res) => {
+  const email = req.params.email;
+  const query = { email: email };
+  const result = await userCollection.findOne(query);
+  res.send(result);
+});
+
+//add product
+app.post("/add-products", verifyJWT, verifySeller, async (req, res) => {
+  const product = req.body;
+  const result = await productCollection.insertOne(product);
   res.send(result);
 });
 
