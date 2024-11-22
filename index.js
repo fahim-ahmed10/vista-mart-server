@@ -23,6 +23,9 @@ const client = new MongoClient(uri, {
   },
 });
 
+const userCollection = client.db("vistaMart").collection("users");
+const productCollection = client.db("vistaMart").collection("products");
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -40,6 +43,16 @@ async function run() {
 run().catch(console.dir);
 
 //api
+app.post("/users", async (req, res) => {
+  const user = req.body;
+  const query = { email: user.email };
+  const existingUser = await userCollection.findOne(query);
+  if (existingUser) {
+    return res.send({ message: "User already exists" });
+  }
+  const result = await userCollection.insertOne(user);
+  res.send(result);
+});
 
 //jwt
 app.post("/authentication", (req, res) => {
