@@ -99,6 +99,16 @@ app.post("/users", async (req, res) => {
   res.send(result);
 });
 
+//get all user
+app.get("/users", async (req, res) => {
+  try {
+    const result = await userCollection.find().toArray();
+    res.json(result); // Send the array of users as JSON
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users" }); // Handle errors properly
+  }
+});
+
 //find user data
 app.get("/user/:email", async (req, res) => {
   const email = req.params.email;
@@ -116,7 +126,7 @@ app.post("/add-products", verifyJWT, verifySeller, async (req, res) => {
 
 //get all products
 app.get("/all-products", async (req, res) => {
-  const { title, sort, category, brand, page = 1, limit= 6 } = req.query;
+  const { title, sort, category, brand, page = 1, limit = 6 } = req.query;
 
   const query = {}; // We use an empty object to inject filter conditions
 
@@ -130,7 +140,7 @@ app.get("/all-products", async (req, res) => {
     query.brand = brand;
   }
   const sortOption = sort === "asc" ? 1 : -1;
-  
+
   const pageNumber = Number(page);
   const limitNumber = Number(limit);
 
@@ -148,9 +158,17 @@ app.get("/all-products", async (req, res) => {
       .find({}, { projection: { category: 1, brand: 1 } })
       .toArray();
 
-    const brands = [...new Set(productInfo.map((product) => product.brand).filter(brand=> brand))];
+    const brands = [
+      ...new Set(
+        productInfo.map((product) => product.brand).filter((brand) => brand)
+      ),
+    ];
     const categories = [
-      ...new Set(productInfo.map((product) => product.category).filter(category=> category)),
+      ...new Set(
+        productInfo
+          .map((product) => product.category)
+          .filter((category) => category)
+      ),
     ];
 
     // Send all the data as a single object
