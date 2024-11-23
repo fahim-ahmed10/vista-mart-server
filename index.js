@@ -116,7 +116,7 @@ app.post("/add-products", verifyJWT, verifySeller, async (req, res) => {
 
 //get all products
 app.get("/all-products", async (req, res) => {
-  const { title, sort, category, brand } = req.query;
+  const { title, sort, category, brand, page = 1, limit= 6 } = req.query;
 
   const query = {}; // We use an empty object to inject filter conditions
 
@@ -130,10 +130,15 @@ app.get("/all-products", async (req, res) => {
     query.brand = brand;
   }
   const sortOption = sort === "asc" ? 1 : -1;
+  
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
 
   try {
     const products = await productCollection
       .find(query)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
       .sort({ price: sortOption })
       .toArray();
 
