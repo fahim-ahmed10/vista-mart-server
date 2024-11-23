@@ -116,27 +116,50 @@ app.post("/add-products", verifyJWT, verifySeller, async (req, res) => {
 
 //get all products
 app.get("/all-products", async (req, res) => {
-  const {title, sort, category, brand} = req.query
+  const { title, sort, category, brand } = req.query;
 
-  const query = {} //we took a empty object to inject value
+  const query = {}; // We use an empty object to inject filter conditions
 
-  if(title){
-    query.title = {$regex: title, $options: 'i'};
+  if (title) {
+    query.title = { $regex: title, $options: "i" };
   }
-  if(category){
-    query.category = {$regex: category, $options: 'i'};
+  if (category) {
+    query.category = { $regex: category, $options: "i" };
   }
-  if(brand){
+  if (brand) {
     query.brand = brand;
   }
+  const sortOption = sort === "asc" ? 1 : -1;
 
-  const sortOption = sort === 'asc' ? 1 : -1
+  try {
+    const products = await productCollection
+      .find(query)
+      .sort({ price: sortOption })
+      .toArray();
 
-  const products = await productCollection.find(query).sort({price: sortOption}).toArray()
-  res.json(products);
+    const totalProducts = await productCollection.countDocuments(query);
 
-})
+    const productInfo = await productCollection
+      .find({}, { projection: { category: 1, brand: 1 } })
+      .toArray();
 
+    const brands = [...new Set(productInfo.map((product) => product.brand).filter(brand=> brand))];
+    const categories = [
+      ...new Set(productInfo.map((product) => product.category).filter(category=> category)),
+    ];
+
+    // Send all the data as a single object
+    res.json({
+      products,
+      brands,
+      categories,
+      totalProducts,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
 
 //jwt
 app.post("/authentication", (req, res) => {
