@@ -114,6 +114,30 @@ app.post("/add-products", verifyJWT, verifySeller, async (req, res) => {
   res.send(result);
 });
 
+//get all products
+app.get("/all-products", async (req, res) => {
+  const {title, sort, category, brand} = req.query
+
+  const query = {} //we took a empty object to inject value
+
+  if(title){
+    query.title = {$regex: title, $options: 'i'};
+  }
+  if(category){
+    query.category = {$regex: category, $options: 'i'};
+  }
+  if(brand){
+    query.brand = brand;
+  }
+
+  const sortOption = sort === 'asc' ? 1 : -1
+
+  const products = await productCollection.find(query).sort({price: sortOption}).toArray()
+  res.json(products);
+
+})
+
+
 //jwt
 app.post("/authentication", (req, res) => {
   const userEmail = req.body;
